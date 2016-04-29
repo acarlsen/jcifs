@@ -21,11 +21,15 @@ package jcifs.smb;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLStreamHandler;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.io.PrintStream;
 
 public class Handler extends URLStreamHandler {
+
+    private static final Pattern DOT_POUND_PATTERN = Pattern.compile("(\\.*)#");
 
     static final URLStreamHandler SMB_HANDLER = new Handler();
 
@@ -48,12 +52,40 @@ public class Handler extends URLStreamHandler {
             spec = "//" + spec;
             limit += 2;
         }
-        super.parseURL( u, spec, start, limit );
+        String mSpec = spec;
+        Matcher matcher = DOT_POUND_PATTERN.matcher(spec);
+        String dots = "";
+        if (matcher.find()) {
+            dots = matcher.group(1);
+            mSpec = matcher.replaceFirst("#");
+            limit -= dots.length();
+        }
+
+        super.parseURL( u, mSpec, start, limit );
         path = u.getPath();
         ref = u.getRef();
+		
+		// Add leading periods (".") into the path if they were preceded by a "#"
+        if (spec.contains(".#" + ref)) {
+            path += dots;
+        }
+		
         if (ref != null) {
             path += '#' + ref;
         }
+		
+		if(spec.charAt(0) == ' ') {
+            //Add leading whitespace back into the path
+            int specIdxInPath = path.lastIndexOf(spec.trim());
+            StringBuffer pathBuilder = new StringBuffer(path);
+            for(int i = 0; i < spec.length() && isWhitespace(spec.charAt(i)); i++) {
+                char whitespaceChar = spec.charAt(i);
+                int numInserted = i;
+                pathBuilder.insert(specIdxInPath + numInserted, whitespaceChar);
+            }
+            path = pathBuilder.toString();
+        }
+		
         port = u.getPort();
         if( port == -1 ) {
             port = getDefaultPort();
@@ -61,5 +93,15 @@ public class Handler extends URLStreamHandler {
         setURL( u, "smb", u.getHost(), port,
                     u.getAuthority(), u.getUserInfo(),
                     path, u.getQuery(), null );
+    }
+	
+    private static boolean hasLeadingWhitespace(String string) {
+        return isWhitespace(string.charAt(0));
+    }
+
+    private static boolean isWhitespace(char c) {
+        // As per the Javadoc for String.trim(), "whitespace" is any character
+        //with a unicode value less than or equal to '\u0020'
+        return c <='\u0020';
     }
 }

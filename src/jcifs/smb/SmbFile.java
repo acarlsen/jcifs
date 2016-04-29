@@ -1133,6 +1133,11 @@ if (this instanceof SmbNamedPipe) {
     public String getPath() {
         return url.toString();
     }
+	
+    public String getUncString() {
+        getUncPath0();
+        return unc;
+	}     
 
     String getUncPath0() {
         if( unc == null ) {

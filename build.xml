@@ -1,4 +1,4 @@
-<project name="jcifs" default="usage" basedir=".">
+<project name="jcifs" default="jar" basedir=".">
 
     <property name="version" value="1.3.18"/>
     <property name="reldate" value="Oct 29, 2014"/>
